@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PEMBURU HANTU</title>
+<style>
+  body { margin: 0; font-family: Arial, sans-serif; background-image: url("kota.png"); display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
+  h1 { background-color: black; color: white; text-decoration: magenta; }
+  img { max-width: 750px; margin: 10px; right: 100px; left: auto;}
+  #continueBtn { padding: 20px 40px; font-size: 24px; background-color: blue; color: white; border: none; cursor: pointer; border-radius: 8px; margin-top: 30px; }
+  #continueBtn:hover { background-color: cyan; color: black;}
+</style>
+</head>
+<body>
+  <h1>PEMBURU HANTU</h1>
+  <img src="hantu.png" alt="Logo">
+  <p>Seberapa Beranikah Anda?</p>
+  <button id="continueBtn">AYO MAIN!</button>
+
+  <script>
+    const btn = document.getElementById('continueBtn');
+    btn.onclick = () => {
+      const win = window.open('game.html', '_blank');
+      if(win){
+        win.focus();
+        // request fullscreen for safety
+        win.document.documentElement.requestFullscreen?.();
+      }
+    };
+  </script>
+</body>
+</html

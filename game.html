@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>こんにちは.exe</title>
+<style>
+  body { background-image: url("KEKMA.png"); color: #fff; font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+  #game { width: 600px; height: 400px; border: 3px solid #444; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; background-image: url(meatcore.png); overflow: hidden; }
+  .room-name { font-size: 24px; margin-bottom: 20px; }
+  .doors { display: flex; gap: 15px; }
+  .door { background-image: url("eye.png"); width: 80px; height: 140px; border: 3px solid #fff; cursor: pointer; display: flex; justify-content: center; align-items: center; font-size: 12px; text-align: center; }
+  .back { background-image: url("eyeback.png"); border-color: red; }
+  .exit { background-image: url("forest.png"); border-color: lime; }
+  .coin-door { background-image: url("soul.png"); border-color: yellow; }
+  #win, #over, #overlay { font-size: 40px; display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; justify-content: center; align-items: center; background: black; color: red; flex-direction: column; z-index: 9999; }
+  #overlay img { width:100%; height:100%; object-fit:cover; }
+  #hud { position: absolute; top: 10px; left: 10px; font-size: 14px; }
+  button { cursor: pointer; }
+</style>
+</head>
+<body>
+<div id="game">
+  <div class="room-name" id="roomName">MAIN_ROOM</div>
+  <div class="doors" id="doors"></div>
+  <div id="win">C0NGRATULAT10N####<br><button id="winReplayBtn" style="margin-top:20px;font-size:20px;">REPLAY</button></div>
+  <div id="overlay"><img src="entity.png"></div>
+  <div id="over">$ERROR$<br><button id="retryBtn" style="margin-top:20px;font-size:20px;">RETRY</button></div>
+  <div id="hud">souls: <span id="coinHUD">0</span><br>you: <span id="youPos">MAIN</span><br>entity_666: <span id="entPos">B12</span><br>nextPosition: <span id="nextEntPos">...</span></div>
+</div>
+<script>
+const rooms = {"MAIN":["A","B","C","EXIT"],"A":["A1","A2","A3"],"A1":["A11","A12"],"A2":["A21","A22","A23"],"B":["B1","B2"],"B1":["B11","B12","B13"],"B11":["B111","B112"],"B2":["B21","B22"],"B22":["B221","B222"],"C":["C1","C2","C3"],"C2":["C21","C22"],"C22":["C221","C222"],"C3":["C31","C32","C33"],"C31":["C311","C312"],"C33":["C331","C332","C333"]};
+const initialCoinRooms = ["A12","A23","B111","B21","B222","C222","C32"];
+let coinRooms, coins, currentRoom, entityRoom, isDead, moveInterval;
+const backMap = {};
+for(const p in rooms){rooms[p].forEach(c=>{if(c!="EXIT") backMap[c]=p;});}
+
+const hudYou = document.getElementById("youPos");
+const hudCoin = document.getElementById("coinHUD");
+const hudEnt = document.getElementById("entPos");
+const hudNext = document.getElementById("nextEntPos");
+const overlay = document.getElementById("overlay");
+const over = document.getElementById("over");
+const retryBtn = document.getElementById("retryBtn");
+const winReplayBtn = document.getElementById("winReplayBtn");
+
+function resetGame(){
+  currentRoom = "MAIN";
+  coins = 0;
+  entityRoom = ["A22","B12","C21"][Math.floor(Math.random()*3)]
+  coinRooms = [...initialCoinRooms];
+  isDead = false;
+  overlay.style.display = "none";
+  over.style.display = "none";
+  document.getElementById("win").style.display = "none";
+  renderRoom();
+  if(moveInterval) clearInterval(moveInterval);
+  moveInterval = setInterval(moveEntity, 5000);
+}
+retryBtn.onclick = resetGame;
+winReplayBtn.onclick = resetGame;
+
+function renderRoom(){
+  const roomName = document.getElementById("roomName");
+  const doorsDiv = document.getElementById("doors");
+  const winText = document.getElementById("win");
+
+  if(currentRoom=="EXIT"){
+    if(coins>=7){roomName.style.display="none"; doorsDiv.style.display="none"; winText.style.display="flex"; return;}
+    else {alert("?need_7_souls"); currentRoom="MAIN";}
+  }
+
+  if(coinRooms.includes(currentRoom)){coins++; coinRooms.splice(coinRooms.indexOf(currentRoom),1);}
+
+  roomName.style.display="block";
+  doorsDiv.style.display="flex";
+  winText.style.display="none";
+  roomName.textContent = currentRoom=="MAIN"?"MAIN_ROOM":currentRoom;
+  doorsDiv.innerHTML="";
+
+  if(currentRoom!="MAIN"){
+    const backDoor=document.createElement("div");
+    backDoor.className="door back";
+    backDoor.textContent="BACK";
+    backDoor.onclick=()=>{ if(!isDead){ currentRoom = backMap[currentRoom]||"MAIN"; renderRoom(); }};
+    doorsDiv.appendChild(backDoor);
+  }
+
+  if(rooms[currentRoom]){
+    rooms[currentRoom].forEach(r=>{
+      if(r=="EXIT" && entityRoom=="EXIT") return;
+      const d=document.createElement("div");
+      d.className="door";
+      d.textContent = r;
+      if(r=="EXIT") d.classList.add("exit");
+      if(coinRooms.includes(r)) d.classList.add("coin-door");
+      d.onclick = () => { if(!isDead){ currentRoom=r; renderRoom(); }};
+      doorsDiv.appendChild(d);
+    });
+  }
+
+  hudYou.textContent = currentRoom;
+  hudCoin.textContent = coins;
+  hudEnt.textContent = entityRoom;
+
+  let possible=[];
+  if(rooms[entityRoom]) possible = possible.concat(rooms[entityRoom]);
+  if(backMap[entityRoom]) possible.push(backMap[entityRoom]);
+  possible = possible.filter(r => r !== "EXIT");
+  hudNext.textContent = possible.join(", ");
+
+  if(currentRoom === entityRoom && !isDead){
+    triggerJumpscare();
+  }
+}
+
+function moveEntity(){
+  if(isDead) return;
+  let possible=[];
+  if(rooms[entityRoom]) possible = possible.concat(rooms[entityRoom]);
+  if(backMap[entityRoom]) possible.push(backMap[entityRoom]);
+  possible = possible.filter(r => r !== "EXIT");
+  if(possible.length>0) entityRoom = possible[Math.floor(Math.random()*possible.length)];
+  renderRoom();
+}
+
+function triggerJumpscare(){
+  isDead = true;
+  overlay.style.position = 'fixed';
+  overlay.style.display = "flex";
+  over.style.display = "none";
+  clearInterval(moveInterval);
+  setTimeout(()=>{
+    overlay.style.display = "none";
+    over.style.display = "flex";
+  },3000);
+}
+
+function startGame(){
+  resetGame();
+}
+
+startGame();
+</script>
+</body>
+</html>
